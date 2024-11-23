@@ -1,0 +1,119 @@
+#pip install Pillow
+
+import tkinter as tk
+from tkinter import filedialog, messagebox
+from PIL import Image
+import os
+
+def seleccionar_imagenes():
+    global imagenes
+    imagenes = filedialog.askopenfilenames(
+        title="Seleccionar imágenes",
+        filetypes=[("Archivos de imagen", "*.jpg;*.jpeg;*.png;*.bmp;*.gif")]
+    )
+    if imagenes:
+        lbl_imagenes_seleccionadas.config(text=f"{len(imagenes)} imágenes seleccionadas")
+    else:
+        lbl_imagenes_seleccionadas.config(text="No se seleccionaron imágenes")
+
+def redimensionar_imagenes():
+    ancho = entry_ancho.get()
+    alto = entry_alto.get()
+
+    if not ancho and not alto:
+        messagebox.showerror("Error", "Debe ingresar el ancho y/o alto deseado.")
+        return
+
+    if not imagenes:
+        messagebox.showerror("Error", "No se han seleccionado imágenes.")
+        return
+
+    # Intentar convertir ancho y alto a enteros, si están presentes
+    if ancho:
+        try:
+            ancho = int(ancho)
+        except ValueError:
+            messagebox.showerror("Error", "El ancho debe ser un número entero.")
+            return
+    else:
+        ancho = None
+
+    if alto:
+        try:
+            alto = int(alto)
+        except ValueError:
+            messagebox.showerror("Error", "El alto debe ser un número entero.")
+            return
+    else:
+        alto = None
+
+    # Preguntar por la carpeta de salida
+    carpeta_salida = filedialog.askdirectory(title="Seleccionar carpeta de salida")
+    if not carpeta_salida:
+        messagebox.showerror("Error", "Debe seleccionar una carpeta de salida.")
+        return
+
+    # Procesar cada imagen
+    for imagen in imagenes:
+        try:
+            img = Image.open(imagen)
+            original_width, original_height = img.size
+
+            if ancho and alto:
+                nueva_imagen = img.resize((ancho, alto), Image.LANCZOS)
+            elif ancho:
+                # Calcular el alto manteniendo la relación de aspecto
+                ratio = ancho / original_width
+                nuevo_alto = int(original_height * ratio)
+                nueva_imagen = img.resize((ancho, nuevo_alto), Image.LANCZOS)
+            elif alto:
+                # Calcular el ancho manteniendo la relación de aspecto
+                ratio = alto / original_height
+                nuevo_ancho = int(original_width * ratio)
+                nueva_imagen = img.resize((nuevo_ancho, alto), Image.LANCZOS)
+
+            # Guardar la imagen en la carpeta de salida
+            nombre_archivo = os.path.basename(imagen)
+            ruta_guardar = os.path.join(carpeta_salida, nombre_archivo)
+            nueva_imagen.save(ruta_guardar)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo procesar la imagen {imagen}.\nError: {e}")
+            continue
+
+    messagebox.showinfo("Proceso completado", "Las imágenes han sido redimensionadas y guardadas.")
+
+# Variables globales
+imagenes = []
+
+# Crear la ventana principal
+root = tk.Tk()
+root.title("Redimensionador by ViajaTech")
+root.geometry("500x400")  # Ajusta el tamaño de la ventana
+
+# Botón para seleccionar imágenes
+btn_seleccionar = tk.Button(root, text="Seleccionar Imágenes", command=seleccionar_imagenes)
+btn_seleccionar.pack(pady=10)
+
+lbl_imagenes_seleccionadas = tk.Label(root, text="No se seleccionaron imágenes")
+lbl_imagenes_seleccionadas.pack()
+
+# Campos para ancho y alto
+frame_dimensiones = tk.Frame(root)
+frame_dimensiones.pack(pady=10)
+
+lbl_ancho = tk.Label(frame_dimensiones, text="Ancho:")
+lbl_ancho.grid(row=0, column=0, padx=5, pady=5)
+entry_ancho = tk.Entry(frame_dimensiones)
+entry_ancho.grid(row=0, column=1, padx=5, pady=5)
+
+lbl_alto = tk.Label(frame_dimensiones, text="Alto:")
+lbl_alto.grid(row=1, column=0, padx=5, pady=5)
+entry_alto = tk.Entry(frame_dimensiones)
+entry_alto.grid(row=1, column=1, padx=5, pady=5)
+
+# Botón para redimensionar
+btn_redimensionar = tk.Button(root, text="Redimensionar Imágenes", command=redimensionar_imagenes)
+btn_redimensionar.pack(pady=10)
+
+# Iniciar el bucle principal
+root.mainloop()
